@@ -28,9 +28,14 @@ jobs:
 
       - name: Deploy WAR to Tomcat DEV
         run: |
+          set -u
           WAR_FILE=$(ls target/*.war)
           echo "Deploying $WAR_FILE to DEV"
-          curl -v -u ${{ secrets.TOMCAT_USER_DEV }}:${{ secrets.TOMCAT_PASS_DEV }} \
+          if [ -z "${{ secrets.TOMCAT_USER_DEV }}" ] || [ -z "${{ secrets.TOMCAT_PASS_DEV }}" ] || [ -z "${{ secrets.TOMCAT_URL_DEV }}" ]; then
+            echo "ERROR: DEV secrets are missing"
+            exit 1
+          fi
+          curl -v -u "${{ secrets.TOMCAT_USER_DEV }}:${{ secrets.TOMCAT_PASS_DEV }}" \
             -T "$WAR_FILE" \
             "http://${{ secrets.TOMCAT_URL_DEV }}:8080/manager/text/deploy?path=/trainbook-dev&update=true"
 
@@ -53,9 +58,14 @@ jobs:
 
       - name: Deploy WAR to Tomcat TEST
         run: |
+          set -u
           WAR_FILE=$(ls target/*.war)
           echo "Deploying $WAR_FILE to TEST"
-          curl -v -u ${{ secrets.TOMCAT_USER_TEST }}:${{ secrets.TOMCAT_PASS_TEST }} \
+          if [ -z "${{ secrets.TOMCAT_USER_TEST }}" ] || [ -z "${{ secrets.TOMCAT_PASS_TEST }}" ] || [ -z "${{ secrets.TOMCAT_URL_TEST }}" ]; then
+            echo "ERROR: TEST secrets are missing"
+            exit 1
+          fi
+          curl -v -u "${{ secrets.TOMCAT_USER_TEST }}:${{ secrets.TOMCAT_PASS_TEST }}" \
             -T "$WAR_FILE" \
             "http://${{ secrets.TOMCAT_URL_TEST }}:8080/manager/text/deploy?path=/trainbook-test&update=true"
 
@@ -78,9 +88,14 @@ jobs:
 
       - name: Deploy WAR to Tomcat PRE-PROD
         run: |
+          set -u
           WAR_FILE=$(ls target/*.war)
           echo "Deploying $WAR_FILE to PRE-PROD"
-          curl -v -u ${{ secrets.TOMCAT_USER_PRE_PROD }}:${{ secrets.TOMCAT_PASS_PRE_PROD }} \
+          if [ -z "${{ secrets.TOMCAT_USER_PRE_PROD }}" ] || [ -z "${{ secrets.TOMCAT_PASS_PRE_PROD }}" ] || [ -z "${{ secrets.TOMCAT_URL_PRE_PROD }}" ]; then
+            echo "ERROR: PRE-PROD secrets are missing"
+            exit 1
+          fi
+          curl -v -u "${{ secrets.TOMCAT_USER_PRE_PROD }}:${{ secrets.TOMCAT_PASS_PRE_PROD }}" \
             -T "$WAR_FILE" \
             "http://${{ secrets.TOMCAT_URL_PRE_PROD }}:8080/manager/text/deploy?path=/trainbook-preprod&update=true"
 
@@ -103,11 +118,17 @@ jobs:
 
       - name: Deploy WAR to Tomcat PROD
         run: |
+          set -u
           WAR_FILE=$(ls target/*.war)
           echo "Deploying $WAR_FILE to PROD"
-          curl -v -u ${{ secrets.TOMCAT_USER_PROD }}:${{ secrets.TOMCAT_PASS_PROD }} \
+          if [ -z "${{ secrets.TOMCAT_USER_PROD }}" ] || [ -z "${{ secrets.TOMCAT_PASS_PROD }}" ] || [ -z "${{ secrets.TOMCAT_URL_PROD }}" ]; then
+            echo "ERROR: PROD secrets are missing"
+            exit 1
+          fi
+          curl -v -u "${{ secrets.TOMCAT_USER_PROD }}:${{ secrets.TOMCAT_PASS_PROD }}" \
             -T "$WAR_FILE" \
             "http://${{ secrets.TOMCAT_URL_PROD }}:8080/manager/text/deploy?path=/trainbook-prod&update=true"
+
 
 
 
