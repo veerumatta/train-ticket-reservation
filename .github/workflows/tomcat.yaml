@@ -21,7 +21,7 @@ jobs:
           java-version: '17'
 
       - name: Build WAR with Maven
-        run: mvn package -DskipTests
+        run: mvn clean package -DskipTests
 
       - name: Verify WAR File
         run: ls -lh target/*.war
@@ -54,7 +54,7 @@ jobs:
           java-version: '17'
 
       - name: Build WAR with Maven
-        run: mvn package -DskipTests
+        run: mvn clean package -DskipTests
 
       - name: Deploy WAR to Tomcat TEST
         run: |
@@ -84,7 +84,7 @@ jobs:
           java-version: '17'
 
       - name: Build WAR with Maven
-        run: mvn package -DskipTests
+        run: mvn clean package -DskipTests
 
       - name: Deploy WAR to Tomcat PRE-PROD
         run: |
@@ -114,7 +114,7 @@ jobs:
           java-version: '17'
 
       - name: Build WAR with Maven
-        run: mvn package -DskipTests
+        run: mvn clean package -DskipTests
 
       - name: Deploy WAR to Tomcat PROD
         run: |
@@ -128,6 +128,7 @@ jobs:
           curl -v -u "${{ secrets.TOMCAT_USER_PROD }}:${{ secrets.TOMCAT_PASS_PROD }}" \
             -T "$WAR_FILE" \
             "http://${{ secrets.TOMCAT_URL_PROD }}:8080/manager/text/deploy?path=/trainbook-prod&update=true"
+"
 
 
 
