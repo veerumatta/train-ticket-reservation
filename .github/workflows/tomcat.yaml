@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
-    name: Build and Deploy Sequentially
+  deploy-dev:
+    name: Build & Deploy to DEV
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -26,21 +26,89 @@ jobs:
       - name: Verify WAR File
         run: ls -lh target/*.war
 
-      - name: Set WAR_FILE variable
-        run: echo "WAR_FILE=$(ls target/*.war)" >> $GITHUB_ENV
-
-      # =====================
-      # Deploy to DEV
-      # =====================
-      - name: Deploy WAR to DEV
+      - name: Deploy WAR to Tomcat DEV
         run: |
+          WAR_FILE=$(ls target/*.war)
           echo "Deploying $WAR_FILE to DEV"
-          curl -v -u "${{ secrets.TOMCAT_USER_DEV }}:${{ secrets.TOMCAT_PASS_DEV }}" \
+          curl -v -u ${{ secrets.TOMCAT_USER_DEV }}:${{ secrets.TOMCAT_PASS_DEV }} \
             -T "$WAR_FILE" \
             "http://${{ secrets.TOMCAT_URL_DEV }}:8080/manager/text/deploy?path=/trainbook-dev&update=true"
 
-      # =====================
-      # Deplo
+  deploy-test:
+    name: Build & Deploy to TEST
+    runs-on: ubuntu-latest
+    needs: deploy-dev
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set Up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build WAR with Maven
+        run: mvn package -DskipTests
+
+      - name: Deploy WAR to Tomcat TEST
+        run: |
+          WAR_FILE=$(ls target/*.war)
+          echo "Deploying $WAR_FILE to TEST"
+          curl -v -u ${{ secrets.TOMCAT_USER_TEST }}:${{ secrets.TOMCAT_PASS_TEST }} \
+            -T "$WAR_FILE" \
+            "http://${{ secrets.TOMCAT_URL_TEST }}:8080/manager/text/deploy?path=/trainbook-test&update=true"
+
+  deploy-preprod:
+    name: Build & Deploy to PRE-PROD
+    runs-on: ubuntu-latest
+    needs: deploy-test
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set Up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build WAR with Maven
+        run: mvn package -DskipTests
+
+      - name: Deploy WAR to Tomcat PRE-PROD
+        run: |
+          WAR_FILE=$(ls target/*.war)
+          echo "Deploying $WAR_FILE to PRE-PROD"
+          curl -v -u ${{ secrets.TOMCAT_USER_PRE_PROD }}:${{ secrets.TOMCAT_PASS_PRE_PROD }} \
+            -T "$WAR_FILE" \
+            "http://${{ secrets.TOMCAT_URL_PRE_PROD }}:8080/manager/text/deploy?path=/trainbook-preprod&update=true"
+
+  deploy-prod:
+    name: Build & Deploy to PROD
+    runs-on: ubuntu-latest
+    needs: deploy-preprod
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set Up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build WAR with Maven
+        run: mvn package -DskipTests
+
+      - name: Deploy WAR to Tomcat PROD
+        run: |
+          WAR_FILE=$(ls target/*.war)
+          echo "Deploying $WAR_FILE to PROD"
+          curl -v -u ${{ secrets.TOMCAT_USER_PROD }}:${{ secrets.TOMCAT_PASS_PROD }} \
+            -T "$WAR_FILE" \
+            "http://${{ secrets.TOMCAT_URL_PROD }}:8080/manager/text/deploy?path=/trainbook-prod&update=true"
+
 
 
 
