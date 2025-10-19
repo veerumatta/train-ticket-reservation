@@ -128,7 +128,7 @@ jobs:
           curl -v -u "${{ secrets.TOMCAT_USER_PROD }}:${{ secrets.TOMCAT_PASS_PROD }}" \
             -T "$WAR_FILE" \
             "http://${{ secrets.TOMCAT_URL_PROD }}:8080/manager/text/deploy?path=/trainbook-prod&update=true"
-"
+
 
 
 
