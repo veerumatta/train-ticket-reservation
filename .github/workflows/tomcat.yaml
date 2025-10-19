@@ -1,33 +1,105 @@
-name: ci/cd pipeline to deploy to tomcat
-on: 
+name: Build and Deploy train-ticket-reservation
+
+on:
   push:
-    branches: master
+    branches:
+      - master
+
 jobs:
-  build-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout code
-        uses: actions/checkout@v3
-      
-      - name: set-up jdk
-        uses: actions/setup-java@v3
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
         with:
+          java-version: '17'
           distribution: 'temurin'
-          java-version: '17'   # Updated Java version
-      - name: validate with maven
-        run: mvn validate
-      - name: compile with maven
-        run: mvn compile
-      - name: test with maven
-        run: mvn test
-      - name: package with maven
-        run: mvn package
-      - name: verify WAR file
-        run: ls -lh target/
-      
-      - name: Build, Test and SonarQube Scan
+
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
+
+      - name: Upload WAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: war-file
+          path: target/*.war
+
+  deploy-dev:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: war-file
+
+      - name: 🚀 Deploy to DEV
+        env:
+          URL: ${{ secrets.TOMCAT_URL_DEV }}
+          USER: ${{ secrets.TOMCAT_USER_DEV }}
+          PASS: ${{ secrets.TOMCAT_PASS_DEV }}
         run: |
-          mvn clean verify sonar:sonar \
-            -Dsonar.projectKey=vcube139 \
-            -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
-            -Dsonar.login="${{ secrets.SONAR_TOKEN }}"
+          WAR_FILE=$(ls *.war | head -n 1)
+          echo "Deploying $WAR_FILE to DEV ($URL)"
+          curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
+            "$URL/deploy?path=/train-ticket-reservation&update=true"
+
+  deploy-test:
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: war-file
+
+      - name: 🚀 Deploy to TEST
+        env:
+          URL: ${{ secrets.TOMCAT_URL_TEST }}
+          USER: ${{ secrets.TOMCAT_USER_TEST }}
+          PASS: ${{ secrets.TOMCAT_PASS_TEST }}
+        run: |
+          WAR_FILE=$(ls *.war | head -n 1)
+          echo "Deploying $WAR_FILE to TEST ($URL)"
+          curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
+            "$URL/deploy?path=/train-ticket-reservation&update=true"
+
+  deploy-preprod:
+    needs: deploy-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: war-file
+
+      - name: 🚀 Deploy to PRE-PROD
+        env:
+          URL: ${{ secrets.TOMCAT_URL_PRE_POD }}
+          USER: ${{ secrets.TOMCAT_USER_PRE_POD }}
+          PASS: ${{ secrets.TOMCAT_PASS_PRE_POD }}
+        run: |
+          WAR_FILE=$(ls *.war | head -n 1)
+          echo "Deploying $WAR_FILE to PRE-PROD ($URL)"
+          curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
+            "$URL/deploy?path=/train-ticket-reservation&update=true"
+
+  deploy-prod:
+    needs: deploy-preprod
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: war-file
+
+      - name: 🚀 Deploy to PRODUCTION
+        env:
+          URL: ${{ secrets.TOMCAT_URL_PROD }}
+          USER: ${{ secrets.TOMCAT_USER_PROD }}
+          PASS: ${{ secrets.TOMCAT_PASS_PROD }}
+        run: |
+          WAR_FILE=$(ls *.war | head -n 1)
+          echo "Deploying $WAR_FILE to PRODUCTION ($URL)"
+          curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
+            "$URL/deploy?path=/train-ticket-reservation&update=true"
+
+
