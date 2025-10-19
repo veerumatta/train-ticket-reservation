@@ -1,4 +1,4 @@
-name: CI/CD Pipeline for train-ticket-reservation  Deployment
+name: CI/CD Pipeline for train-ticket-reservation Deployment
 
 on:
   push:
@@ -31,17 +31,18 @@ jobs:
         run: mvn test
 
       - name: Package with Maven
-        run: mvn package
+        run: mvn package -DskipTests
 
       - name: Verify WAR File
         run: ls -lh target/
 
-      # ✅ Upload WAR artifact so other jobs can use it
+      # ✅ Upload WAR artifact for all deploy jobs
       - name: Upload WAR Artifact
         uses: actions/upload-artifact@v4
         with:
           name: train-ticket-reservation-war
           path: target/train-ticket-reservation-6.1.1-SNAPSHOT.war
+
 
   deploy-dev:
     name: Deploy to DEV Environment
@@ -52,7 +53,7 @@ jobs:
       - name: Download WAR Artifact
         uses: actions/download-artifact@v4
         with:
-          name: -war
+          name: train-ticket-reservation-war   # ✅ fixed name
           path: target/
 
       - name: Deploy WAR to Tomcat DEV
@@ -60,6 +61,7 @@ jobs:
           curl -v -u ${{ secrets.TOMCAT_USER_DEV }}:${{ secrets.TOMCAT_PASS_DEV }} \
           -T target/train-ticket-reservation-6.1.1-SNAPSHOT.war \
           "http://${{ secrets.TOMCAT_URL_DEV }}:8080/manager/text/deploy?path=/trainbook-dev&update=true"
+
 
   deploy-test:
     name: Deploy to TEST Environment
@@ -79,6 +81,7 @@ jobs:
           -T target/train-ticket-reservation-6.1.1-SNAPSHOT.war \
           "http://${{ secrets.TOMCAT_URL_TEST }}:8080/manager/text/deploy?path=/trainbook-test&update=true"
 
+
   deploy-preprod:
     name: Deploy to PRE-PROD Environment
     needs: build
@@ -93,9 +96,10 @@ jobs:
 
       - name: Deploy WAR to Tomcat PRE-PROD
         run: |
-          curl -v -u ${{ secrets.TOMCAT_USER_PRE_POD }}:${{ secrets.TOMCAT_PASS_PRE_POD }} \
+          curl -v -u ${{ secrets.TOMCAT_USER_PRE_PROD }}:${{ secrets.TOMCAT_PASS_PRE_PROD }} \
           -T target/train-ticket-reservation-6.1.1-SNAPSHOT.war \
-          "http://${{ secrets.TOMCAT_URL_PRE_POD }}:8080/manager/text/deploy?path=/trainbook-preprod&update=true"
+          "http://${{ secrets.TOMCAT_URL_PRE_PROD }}:8080/manager/text/deploy?path=/trainbook-preprod&update=true"
+
 
   deploy-prod:
     name: Deploy to PROD Environment
@@ -111,7 +115,8 @@ jobs:
 
       - name: Deploy WAR to Tomcat PROD
         run: |
-          curl -v -u ${{ secrets.TOMCAT_USER_PROD}}:${{ secrets.TOMCAT_PASS_PROD }} \
+          curl -v -u ${{ secrets.TOMCAT_USER_PROD }}:${{ secrets.TOMCAT_PASS_PROD }} \
           -T target/train-ticket-reservation-6.1.1-SNAPSHOT.war \
           "http://${{ secrets.TOMCAT_URL_PROD }}:8080/manager/text/deploy?path=/trainbook-prod&update=true"
+
 
