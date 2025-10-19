@@ -24,18 +24,20 @@ jobs:
         run: mvn package -DskipTests
 
       - name: Verify WAR File
-        run: ls -lh target/
+        run: ls -lh target/*.war
 
       - name: Deploy WAR to Tomcat DEV
         run: |
+          WAR_FILE=$(ls target/*.war)
+          echo "Deploying $WAR_FILE to DEV"
           curl -v -u ${{ secrets.TOMCAT_USER_DEV }}:${{ secrets.TOMCAT_PASS_DEV }} \
-          -T target/train-ticket-reservation-6.1.1-SNAPSHOT.war \
-          "http://${{ secrets.TOMCAT_URL_DEV }}:8080/manager/text/deploy?path=/trainbook-dev&update=true"
+            -T "$WAR_FILE" \
+            "http://${{ secrets.TOMCAT_URL_DEV }}:8080/manager/text/deploy?path=/trainbook-dev&update=true"
 
   deploy-test:
     name: Build & Deploy to TEST
     runs-on: ubuntu-latest
-    needs: deploy-dev   # ensures DEV deploy runs first
+    needs: deploy-dev
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -51,9 +53,11 @@ jobs:
 
       - name: Deploy WAR to Tomcat TEST
         run: |
+          WAR_FILE=$(ls target/*.war)
+          echo "Deploying $WAR_FILE to TEST"
           curl -v -u ${{ secrets.TOMCAT_USER_TEST }}:${{ secrets.TOMCAT_PASS_TEST }} \
-          -T target/train-ticket-reservation-6.1.1-SNAPSHOT.war \
-          "http://${{ secrets.TOMCAT_URL_TEST }}:8080/manager/text/deploy?path=/trainbook-test&update=true"
+            -T "$WAR_FILE" \
+            "http://${{ secrets.TOMCAT_URL_TEST }}:8080/manager/text/deploy?path=/trainbook-test&update=true"
 
   deploy-preprod:
     name: Build & Deploy to PRE-PROD
@@ -74,9 +78,11 @@ jobs:
 
       - name: Deploy WAR to Tomcat PRE-PROD
         run: |
+          WAR_FILE=$(ls target/*.war)
+          echo "Deploying $WAR_FILE to PRE-PROD"
           curl -v -u ${{ secrets.TOMCAT_USER_PRE_PROD }}:${{ secrets.TOMCAT_PASS_PRE_PROD }} \
-          -T target/train-ticket-reservation-6.1.1-SNAPSHOT.war \
-          "http://${{ secrets.TOMCAT_URL_PRE_PROD }}:8080/manager/text/deploy?path=/trainbook-preprod&update=true"
+            -T "$WAR_FILE" \
+            "http://${{ secrets.TOMCAT_URL_PRE_PROD }}:8080/manager/text/deploy?path=/trainbook-preprod&update=true"
 
   deploy-prod:
     name: Build & Deploy to PROD
@@ -97,9 +103,11 @@ jobs:
 
       - name: Deploy WAR to Tomcat PROD
         run: |
+          WAR_FILE=$(ls target/*.war)
+          echo "Deploying $WAR_FILE to PROD"
           curl -v -u ${{ secrets.TOMCAT_USER_PROD }}:${{ secrets.TOMCAT_PASS_PROD }} \
-          -T target/train-ticket-reservation-6.1.1-SNAPSHOT.war \
-          "http://${{ secrets.TOMCAT_URL_PROD }}:8080/manager/text/deploy?path=/trainbook-prod&update=true"
+            -T "$WAR_FILE" \
+            "http://${{ secrets.TOMCAT_URL_PROD }}:8080/manager/text/deploy?path=/trainbook-prod&update=true"
 
 
 
