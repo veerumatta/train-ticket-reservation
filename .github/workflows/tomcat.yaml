@@ -7,10 +7,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Build and Package WAR
+  deploy-dev:
+    name: Build & Deploy to DEV
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -21,40 +20,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Validate with Maven
-        run: mvn validate
-
-      - name: Compile with Maven
-        run: mvn compile
-
-      - name: Test with Maven
-        run: mvn test
-
-      - name: Package with Maven
+      - name: Build WAR with Maven
         run: mvn package -DskipTests
 
       - name: Verify WAR File
         run: ls -lh target/
-
-      # ✅ Upload WAR artifact for all deploy jobs
-      - name: Upload WAR Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: train-ticket-reservation-war
-          path: target/train-ticket-reservation-6.1.1-SNAPSHOT.war
-
-
-  deploy-dev:
-    name: Deploy to DEV Environment
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Download WAR Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: train-ticket-reservation-war   # ✅ fixed name
-          path: target/
 
       - name: Deploy WAR to Tomcat DEV
         run: |
@@ -62,18 +32,22 @@ jobs:
           -T target/train-ticket-reservation-6.1.1-SNAPSHOT.war \
           "http://${{ secrets.TOMCAT_URL_DEV }}:8080/manager/text/deploy?path=/trainbook-dev&update=true"
 
-
   deploy-test:
-    name: Deploy to TEST Environment
-    needs: build
+    name: Build & Deploy to TEST
     runs-on: ubuntu-latest
-
+    needs: deploy-dev   # ensures DEV deploy runs first
     steps:
-      - name: Download WAR Artifact
-        uses: actions/download-artifact@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set Up JDK
+        uses: actions/setup-java@v4
         with:
-          name: train-ticket-reservation-war
-          path: target/
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build WAR with Maven
+        run: mvn package -DskipTests
 
       - name: Deploy WAR to Tomcat TEST
         run: |
@@ -81,18 +55,22 @@ jobs:
           -T target/train-ticket-reservation-6.1.1-SNAPSHOT.war \
           "http://${{ secrets.TOMCAT_URL_TEST }}:8080/manager/text/deploy?path=/trainbook-test&update=true"
 
-
   deploy-preprod:
-    name: Deploy to PRE-PROD Environment
-    needs: build
+    name: Build & Deploy to PRE-PROD
     runs-on: ubuntu-latest
-
+    needs: deploy-test
     steps:
-      - name: Download WAR Artifact
-        uses: actions/download-artifact@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set Up JDK
+        uses: actions/setup-java@v4
         with:
-          name: train-ticket-reservation-war
-          path: target/
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build WAR with Maven
+        run: mvn package -DskipTests
 
       - name: Deploy WAR to Tomcat PRE-PROD
         run: |
@@ -100,24 +78,29 @@ jobs:
           -T target/train-ticket-reservation-6.1.1-SNAPSHOT.war \
           "http://${{ secrets.TOMCAT_URL_PRE_PROD }}:8080/manager/text/deploy?path=/trainbook-preprod&update=true"
 
-
   deploy-prod:
-    name: Deploy to PROD Environment
-    needs: build
+    name: Build & Deploy to PROD
     runs-on: ubuntu-latest
-
+    needs: deploy-preprod
     steps:
-      - name: Download WAR Artifact
-        uses: actions/download-artifact@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set Up JDK
+        uses: actions/setup-java@v4
         with:
-          name: train-ticket-reservation-war
-          path: target/
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build WAR with Maven
+        run: mvn package -DskipTests
 
       - name: Deploy WAR to Tomcat PROD
         run: |
           curl -v -u ${{ secrets.TOMCAT_USER_PROD }}:${{ secrets.TOMCAT_PASS_PROD }} \
           -T target/train-ticket-reservation-6.1.1-SNAPSHOT.war \
           "http://${{ secrets.TOMCAT_URL_PROD }}:8080/manager/text/deploy?path=/trainbook-prod&update=true"
+
 
 
 
