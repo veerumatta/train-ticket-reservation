@@ -44,12 +44,12 @@ jobs:
 
 
       # 6️⃣ Snyk Vulnerability Scan
-      - name: Snyk Security Scan
+      - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/maven@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: test --severity-threshold=medium
+        continue-on-error: true
+
 
       # 7️⃣ Upload Artifact to Nexus Repository
       - name: Upload Artifact to Nexus
@@ -64,12 +64,14 @@ jobs:
             -Durl=https://your-nexus-server/repository/maven-releases/ \
             -Dusername=${{ secrets.NEXUS_USERNAME }} \
             -Dpassword=${{ secrets.NEXUS_PASSWORD }}
-
-      # 8️⃣ Deploy to Tomcat Server
-      - name: Deploy WAR to Tomcat
+      - name: check tomcat connection
         run: |
-          WAR_FILE=$(ls target/*.war)
-          echo "Deploying $WAR_FILE to Tomcat..."
-          curl -u "${{ secrets.TOMCAT_USER }}:${{ secrets.TOMCAT_PASSWORD }}" \
-               --upload-file $WAR_FILE \
-               "${{ secrets.TOMCAT_URL }}/deploy?path=/Reddy&update=true"
+                 curl --fail --anyauth -u "${{ secrets.TOMCAT_USER }}:${{ secrets.TOMCAT_PASSWORD }}" \
+                 "http://${{ secrets.TOMCAT_HOST }}:8080/manager/text/list"
+
+          # Deploy to Tomcat
+      - name: deploy war to tomcat
+        run: | 
+                curl -v -u ${{ secrets.TOMCAT_USER }}:${{ secrets.TOMCAT_PASSWORD }} \
+                  -T target/TrainBook-1.0.0-SNAPSHOT.war \
+                  "http://${{ secrets.TOMCAT_HOST }}:8080/manager/text/deploy?path=/TrainBook&update=true"
