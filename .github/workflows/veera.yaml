@@ -14,7 +14,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Set Up JDK
+      # 2️⃣ Set Up Java
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -56,25 +56,32 @@ jobs:
       # 8️⃣ Upload Artifact to Nexus Repository
       - name: Upload Artifact to Nexus
         run: |
-          # Determine correct repository
-          if [[ "$WAR_FILE" == *"SNAPSHOT"* ]]; then
+          WAR_FILE=$(ls target/*.war)
+          echo "WAR_FILE=$WAR_FILE"
+
+          # Extract version from WAR filename
+          VERSION=$(basename $WAR_FILE | sed -E 's/.*-([0-9]+.*)\.war/\1/')
+          echo "VERSION=$VERSION"
+
+          # Choose repository based on version
+          if [[ "$VERSION" == *"SNAPSHOT"* ]]; then
             REPO_URL="${{ secrets.NEXUS_SNAPSHOT_URL }}"
           else
             REPO_URL="${{ secrets.NEXUS_RELEASE_URL }}"
           fi
 
-          echo "Deploying $WAR_FILE to $REPO_URL"
+          echo "Deploying $WAR_FILE version $VERSION to $REPO_URL"
 
           mvn deploy:deploy-file \
             -DgroupId=TrainBook \
             -DartifactId=TrainBook \
-            -Dversion=1.0.0-SNAPSHOT \
+            -Dversion=$VERSION \
             -Dpackaging=war \
             -Dfile=$WAR_FILE \
             -DrepositoryId=nexus \
             -Durl=$REPO_URL \
             -Dusername=${{ secrets.NEXUS_USERNAME }} \
-            -Dpassword=${{ secrets.NEXUS_PASSWORD }}
+            -Dpassword="${{ secrets.NEXUS_PASSWORD }}"
 
       # 9️⃣ Check Tomcat connection
       - name: Check Tomcat Connection
@@ -88,4 +95,5 @@ jobs:
           curl -v -u "${{ secrets.TOMCAT_USER }}:${{ secrets.TOMCAT_PASSWORD }}" \
           -T "$WAR_FILE" \
           "http://${{ secrets.TOMCAT_HOST }}:8080/manager/text/deploy?path=/REDDY&update=true"
+
 
