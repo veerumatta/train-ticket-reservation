@@ -63,7 +63,7 @@ jobs:
             -Dpackaging=war \
             -Dfile=$WAR_FILE \
             -DrepositoryId=nexus \
-            -Durl=https://your-nexus-server/repository/maven-releases/ \
+            -Durl=${{ secrets.NEXUS_URL }} \
             -Dusername=${{ secrets.NEXUS_USERNAME }} \
             -Dpassword=${{ secrets.NEXUS_PASSWORD }}
 
