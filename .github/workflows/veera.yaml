@@ -1,0 +1,75 @@
+name: CI/CD Pipeline for Java App (Maven + SonarQube + Snyk + Nexus + Tomcat)
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Checkout Code
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Set Up JDK
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # 3️⃣ Cache Maven packages
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      # 4️⃣ Build and Package WAR
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
+
+      # 5️⃣ SonarQube Analysis
+      - name: Build, Test and SonarQube Scan
+        run: |
+          mvn clean verify sonar:sonar \
+            -Dsonar.projectKey=train-ticket-reservation \
+            -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
+            -Dsonar.login="${{ secrets.SONAR_TOKEN }}"
+
+
+      # 6️⃣ Snyk Vulnerability Scan
+      - name: Snyk Security Scan
+        uses: snyk/actions/maven@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: test --severity-threshold=medium
+
+      # 7️⃣ Upload Artifact to Nexus Repository
+      - name: Upload Artifact to Nexus
+        run: |
+          mvn deploy:deploy-file \
+            -DgroupId=TrainBook \
+            -DartifactId=TrainBook \
+            -Dversion=1.0.0-SNAPSHOT \
+            -Dpackaging=war \
+            -Dfile=target/*.war \
+            -DrepositoryId=nexus \
+            -Durl=https://your-nexus-server/repository/maven-releases/ \
+            -Dusername=${{ secrets.NEXUS_USERNAME }} \
+            -Dpassword=${{ secrets.NEXUS_PASSWORD }}
+
+      # 8️⃣ Deploy to Tomcat Server
+      - name: Deploy WAR to Tomcat
+        run: |
+          WAR_FILE=$(ls target/*.war)
+          echo "Deploying $WAR_FILE to Tomcat..."
+          curl -u "${{ secrets.TOMCAT_USER }}:${{ secrets.TOMCAT_PASSWORD }}" \
+               --upload-file $WAR_FILE \
+               "${{ secrets.TOMCAT_URL }}/deploy?path=/Reddy&update=true"
