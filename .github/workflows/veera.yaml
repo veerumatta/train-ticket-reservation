@@ -54,62 +54,6 @@ jobs:
         continue-on-error: true
 
       # 8️⃣ Upload Artifact to Nexus Repository
-  name: CI/CD Pipeline for Java App (Maven + SonarQube + Snyk + Nexus + Tomcat)
-
-on:
-  push:
-    branches: [ master ]
-  workflow_dispatch:
-
-jobs:
-  build-deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-      # 1️⃣ Checkout Code
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      # 2️⃣ Set Up JDK
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      # 3️⃣ Cache Maven packages
-      - name: Cache Maven packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      # 4️⃣ Build and Package WAR
-      - name: Build with Maven
-        run: mvn clean package -DskipTests
-
-      # 5️⃣ Set WAR file environment variable
-      - name: Set WAR file variable
-        run: echo "WAR_FILE=$(ls target/*.war)" >> $GITHUB_ENV
-
-      # 6️⃣ SonarQube Analysis
-      - name: SonarQube Scan
-        run: |
-          mvn clean verify sonar:sonar \
-            -Dsonar.projectKey=train-ticket-reservation \
-            -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
-            -Dsonar.login="${{ secrets.SONAR_TOKEN }}"
-
-      # 7️⃣ Snyk Vulnerability Scan
-      - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/maven@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        continue-on-error: true
-
-      # 8️⃣ Upload Artifact to Nexus Repository
       - name: Upload Artifact to Nexus
         run: |
           # Determine correct repository
@@ -131,19 +75,6 @@ jobs:
             -Durl=$REPO_URL \
             -Dusername=${{ secrets.NEXUS_USERNAME }} \
             -Dpassword=${{ secrets.NEXUS_PASSWORD }}
-
-      # 9️⃣ Check Tomcat connection
-      - name: Check Tomcat Connection
-        run: |
-          curl --fail --anyauth -u "${{ secrets.TOMCAT_USER }}:${{ secrets.TOMCAT_PASSWORD }}" \
-          "http://${{ secrets.TOMCAT_HOST }}:8080/manager/text/list"
-
-      # 🔟 Deploy WAR to Tomcat
-      - name: Deploy WAR to Tomcat
-        run: |
-          curl -v -u "${{ secrets.TOMCAT_USER }}:${{ secrets.TOMCAT_PASSWORD }}" \
-          -T "$WAR_FILE" \
-          "http://${{ secrets.TOMCAT_HOST }}:8080/manager/text/deploy?path=/TrainBook&update=true"
 
       # 9️⃣ Check Tomcat connection
       - name: Check Tomcat Connection
