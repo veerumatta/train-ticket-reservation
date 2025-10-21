@@ -34,24 +34,26 @@ jobs:
       - name: Build with Maven
         run: mvn clean package -DskipTests
 
-      # 5️⃣ SonarQube Analysis
-      - name: Build, Test and SonarQube Scan
+      # 5️⃣ Set WAR file environment variable
+      - name: Set WAR file variable
+        run: echo "WAR_FILE=$(ls target/*.war)" >> $GITHUB_ENV
+
+      # 6️⃣ SonarQube Analysis
+      - name: SonarQube Scan
         run: |
           mvn clean verify sonar:sonar \
             -Dsonar.projectKey=train-ticket-reservation \
             -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
             -Dsonar.login="${{ secrets.SONAR_TOKEN }}"
 
-
-      # 6️⃣ Snyk Vulnerability Scan
+      # 7️⃣ Snyk Vulnerability Scan
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/maven@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         continue-on-error: true
 
-
-      # 7️⃣ Upload Artifact to Nexus Repository
+      # 8️⃣ Upload Artifact to Nexus Repository
       - name: Upload Artifact to Nexus
         run: |
           mvn deploy:deploy-file \
@@ -59,19 +61,22 @@ jobs:
             -DartifactId=TrainBook \
             -Dversion=1.0.0-SNAPSHOT \
             -Dpackaging=war \
-            -Dfile=target/*.war \
+            -Dfile=$WAR_FILE \
             -DrepositoryId=nexus \
             -Durl=https://your-nexus-server/repository/maven-releases/ \
             -Dusername=${{ secrets.NEXUS_USERNAME }} \
             -Dpassword=${{ secrets.NEXUS_PASSWORD }}
-      - name: check tomcat connection
-        run: |
-                 curl --fail --anyauth -u "${{ secrets.TOMCAT_USER }}:${{ secrets.TOMCAT_PASSWORD }}" \
-                 "http://${{ secrets.TOMCAT_HOST }}:8080/manager/text/list"
 
-          # Deploy to Tomcat
-      - name: deploy war to tomcat
-        run: | 
-                curl -v -u ${{ secrets.TOMCAT_USER }}:${{ secrets.TOMCAT_PASSWORD }} \
-                  -T target/TrainBook-1.0.0-SNAPSHOT.war \
-                  "http://${{ secrets.TOMCAT_HOST }}:8080/manager/text/deploy?path=/TrainBook&update=true"
+      # 9️⃣ Check Tomcat connection
+      - name: Check Tomcat Connection
+        run: |
+          curl --fail --anyauth -u "${{ secrets.TOMCAT_USER }}:${{ secrets.TOMCAT_PASSWORD }}" \
+          "http://${{ secrets.TOMCAT_HOST }}:8080/manager/text/list"
+
+      # 🔟 Deploy WAR to Tomcat
+      - name: Deploy WAR to Tomcat
+        run: |
+          curl -v -u "${{ secrets.TOMCAT_USER }}:${{ secrets.TOMCAT_PASSWORD }}" \
+          -T "$WAR_FILE" \
+          "http://${{ secrets.TOMCAT_HOST }}:8080/manager/text/deploy?path=/REDDY&update=true"
+
