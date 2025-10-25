@@ -36,77 +36,95 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      # 4️⃣ Build WAR
+      # 4️⃣ Create Maven settings.xml with credentials
+      - name: Setup Maven settings.xml
+        run: |
+          cat > settings.xml <<EOL
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                                        https://maven.apache.org/xsd/settings-1.0.0.xsd">
+            <servers>
+              <server>
+                <id>nexus</id>
+                <username>${NEXUS_USERNAME}</username>
+                <password>${NEXUS_PASSWORD}</password>
+              </server>
+            </servers>
+            <mirrors>
+              <mirror>
+                <id>central</id>
+                <name>Maven Central Mirror</name>
+                <url>https://repo1.maven.org/maven2/</url>
+                <mirrorOf>*</mirrorOf>
+              </mirror>
+            </mirrors>
+          </settings>
+          EOL
+
+      # 5️⃣ Build WAR
       - name: Build with Maven
         run: mvn clean package -DskipTests -s settings.xml -U
 
-      # 5️⃣ Set WAR file variable
+      # 6️⃣ Set WAR file variable
       - name: Set WAR file
-        run: |
-          WAR_FILE=$(ls target/*.war)
-          if [ ! -f "$WAR_FILE" ]; then
-            echo "WAR file not found!"
-            exit 1
-          fi
-          echo "WAR_FILE=$WAR_FILE" >> $GITHUB_ENV
+        run: echo "WAR_FILE=$(ls target/*.war)" >> $GITHUB_ENV
 
-      # 6️⃣ SonarQube Analysis
+      # 7️⃣ SonarQube Analysis
       - name: SonarQube Scan
         run: |
           mvn clean verify sonar:sonar \
             -Dsonar.projectKey=train-ticket-reservation \
             -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
             -Dsonar.login="${{ secrets.SONAR_TOKEN }}" \
-            -Dsonar.qualitygate.wait=true \
             -s settings.xml -U
 
-      # 7️⃣ Snyk Vulnerability Scan
+      # 8️⃣ Snyk Vulnerability Scan
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/maven@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         continue-on-error: true
 
-      # 8️⃣ Upload WAR to Nexus (Snapshot or Release)
+      # 9️⃣ Upload WAR to Nexus
       - name: Upload WAR to Nexus
-        env:
-          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
-          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
-          NEXUS_SNAPSHOT_URL: ${{ secrets.NEXUS_SNAPSHOT_URL }}
-          NEXUS_RELEASE_URL: ${{ secrets.NEXUS_RELEASE_URL }}
         run: |
-          WAR_FILE=$WAR_FILE
+          WAR_FILE=$(ls target/*.war)
+          echo "WAR_FILE=$WAR_FILE"
+
+          if [ ! -f "$WAR_FILE" ]; then
+            echo "WAR file not found!"
+            exit 1
+          fi
 
           VERSION=$(basename $WAR_FILE | sed -E 's/.*-([0-9]+.*)\.war/\1/')
           echo "VERSION=$VERSION"
 
           if [[ "$VERSION" == *"SNAPSHOT"* ]]; then
-            REPO_URL="$NEXUS_SNAPSHOT_URL"
+            REPO_URL="${{ secrets.NEXUS_SNAPSHOT_URL }}"
           else
-            REPO_URL="$NEXUS_RELEASE_URL"
+            REPO_URL="${{ secrets.NEXUS_RELEASE_URL }}"
           fi
-
-          echo "Deploying $WAR_FILE version $VERSION to $REPO_URL"
 
           mvn deploy:deploy-file \
             -DgroupId=TrainBook \
             -DartifactId=TrainBook \
-            -Dversion="$VERSION" \
+            -Dversion=$VERSION \
             -Dpackaging=war \
-            -Dfile="$WAR_FILE" \
+            -Dfile=$WAR_FILE \
             -DrepositoryId=nexus \
-            -Durl="$REPO_URL" \
-            -Dusername="$NEXUS_USERNAME" \
-            -Dpassword="$NEXUS_PASSWORD" \
+            -Durl=$REPO_URL \
+            -Dusername=$NEXUS_USERNAME \
+            -Dpassword=$NEXUS_PASSWORD \
             -s settings.xml -U
 
-      # 9️⃣ Check Tomcat connection
+      # 🔟 Check Tomcat connection
       - name: Check Tomcat Connection
         run: |
           curl --fail --anyauth -u "${{ secrets.TOMCAT_USER }}:${{ secrets.TOMCAT_PASSWORD }}" \
           "http://${{ secrets.TOMCAT_HOST }}:8080/manager/text/list"
 
-      # 🔟 Deploy WAR to Tomcat
+      # 1️⃣1️⃣ Deploy WAR to Tomcat
       - name: Deploy WAR to Tomcat
         run: |
           curl -v -u "${{ secrets.TOMCAT_USER }}:${{ secrets.TOMCAT_PASSWORD }}" \
