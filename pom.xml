@@ -92,18 +92,16 @@
         </dependency>
     </dependencies>
 
-    <!-- ✅ Added Nexus repository configuration -->
-    <distributionManagement>
-        <snapshotRepository>
-            <id>nexus</id>
-            <name>Nexus Snapshots</name>
-            <url>http://3.110.203.34:8081/repository/maven-snapshots/</url>
-        </snapshotRepository>
-        <repository>
-            <id>nexus</id>
-            <name>Nexus Releases</name>
-            <url>http://3.110.203.34:8081/repository/maven-releases/</url>
-        </repository>
-    </distributionManagement>
+ <distributionManagement>
+    <snapshotRepository>
+        <id>nexus</id>
+        <name>Nexus Snapshots</name>
+        <url>http://13.234.14.133:8081/repository/maven-snapshots/</url>
+    </snapshotRepository>
+    <repository>
+        <id>nexus</id>
+        <name>Nexus Releases</name>
+        <url>http://13.234.14.133:8081/repository/maven-releases/</url>
+    </repository>
+</distributionManagement>
 
-</project>
