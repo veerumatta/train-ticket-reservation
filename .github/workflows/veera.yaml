@@ -65,34 +65,41 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         continue-on-error: true
 
-      # - name: Upload WAR to Nexus
-  env:
-    NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
-    NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
-  run: |
-    VERSION=$(basename $WAR_FILE | sed -E 's/.*-([0-9]+.*)\.war/\1/')
-    echo "VERSION=$VERSION"
+      # 8️⃣ Upload WAR to Nexus (Snapshot or Release)
+      - name: Upload WAR to Nexus
+        env:
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+          NEXUS_SNAPSHOT_URL: ${{ secrets.NEXUS_SNAPSHOT_URL }}
+          NEXUS_RELEASE_URL: ${{ secrets.NEXUS_RELEASE_URL }}
+        run: |
+          WAR_FILE=$WAR_FILE
 
-    if [[ "$VERSION" == *"SNAPSHOT"* ]]; then
-      REPO_URL="${{ secrets.NEXUS_SNAPSHOT_URL }}"
-    else
-      REPO_URL="${{ secrets.NEXUS_RELEASE_URL }}"
-    fi
+          # Extract version from WAR filename
+          VERSION=$(basename $WAR_FILE | sed -E 's/.*-([0-9]+.*)\.war/\1/')
+          echo "VERSION=$VERSION"
 
-    echo "Deploying $WAR_FILE version $VERSION to $REPO_URL"
+          # Choose snapshot or release repository
+          if [[ "$VERSION" == *"SNAPSHOT"* ]]; then
+            REPO_URL="$NEXUS_SNAPSHOT_URL"
+          else
+            REPO_URL="$NEXUS_RELEASE_URL"
+          fi
 
-    mvn deploy:deploy-file \
-      -DgroupId=TrainBook \
-      -DartifactId=TrainBook \
-      -Dversion="$VERSION" \
-      -Dpackaging=war \
-      -Dfile="$WAR_FILE" \
-      -DrepositoryId=nexus \
-      -Durl="$REPO_URL" \
-      -Dusername="${NEXUS_USERNAME}" \
-      -Dpassword="${NEXUS_PASSWORD}" \
-      -s settings.xml
+          echo "Deploying $WAR_FILE version $VERSION to $REPO_URL"
 
+          # Deploy WAR to Nexus
+          mvn deploy:deploy-file \
+            -DgroupId=TrainBook \
+            -DartifactId=TrainBook \
+            -Dversion="$VERSION" \
+            -Dpackaging=war \
+            -Dfile="$WAR_FILE" \
+            -DrepositoryId=nexus \
+            -Durl="$REPO_URL" \
+            -Dusername="$NEXUS_USERNAME" \
+            -Dpassword="$NEXUS_PASSWORD" \
+            -s settings.xml
 
       # 9️⃣ Check Tomcat connection
       - name: Check Tomcat Connection
@@ -106,12 +113,6 @@ jobs:
           curl -v -u "${{ secrets.TOMCAT_USER }}:${{ secrets.TOMCAT_PASSWORD }}" \
           -T "$WAR_FILE" \
           "http://${{ secrets.TOMCAT_HOST }}:8080/manager/text/deploy?path=/REDDY&update=true"
-
-
-
-
-
-
 
 
 
