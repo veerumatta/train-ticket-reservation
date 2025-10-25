@@ -10,7 +10,7 @@
     <mirror>
       <id>central</id>
       <name>Nexus Mirror</name>
-      <url>https://nexus.example.com/repository/maven-public/</url>
+      <url>https://13.234.14.133:8081/repository/maven-public/</url>
       <mirrorOf>*</mirrorOf>
     </mirror>
   </mirrors>
