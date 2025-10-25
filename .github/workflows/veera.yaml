@@ -65,30 +65,34 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         continue-on-error: true
 
-      # 8️⃣ Upload WAR to Nexus (Snapshot or Release)
-      - name: Upload WAR to Nexus
-        run: |
-          VERSION=$(basename $WAR_FILE | sed -E 's/.*-([0-9]+.*)\.war/\1/')
-          echo "VERSION=$VERSION"
+      # - name: Upload WAR to Nexus
+  env:
+    NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+    NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+  run: |
+    VERSION=$(basename $WAR_FILE | sed -E 's/.*-([0-9]+.*)\.war/\1/')
+    echo "VERSION=$VERSION"
 
-          if [[ "$VERSION" == *"SNAPSHOT"* ]]; then
-            REPO_URL="${{ secrets.NEXUS_SNAPSHOT_URL }}"
-          else
-            REPO_URL="${{ secrets.NEXUS_RELEASE_URL }}"
-          fi
+    if [[ "$VERSION" == *"SNAPSHOT"* ]]; then
+      REPO_URL="${{ secrets.NEXUS_SNAPSHOT_URL }}"
+    else
+      REPO_URL="${{ secrets.NEXUS_RELEASE_URL }}"
+    fi
 
-          echo "Deploying $WAR_FILE version $VERSION to $REPO_URL"
+    echo "Deploying $WAR_FILE version $VERSION to $REPO_URL"
 
-          mvn deploy:deploy-file \
-            -DgroupId=TrainBook \
-            -DartifactId=TrainBook \
-            -Dversion=$VERSION \
-            -Dpackaging=war \
-            -Dfile=$WAR_FILE \
-            -DrepositoryId=nexus \
-            -Durl=$REPO_URL \
-            -Dusername=$NEXUS_USERNAME \
-            -Dpassword=$NEXUS_PASSWORD
+    mvn deploy:deploy-file \
+      -DgroupId=TrainBook \
+      -DartifactId=TrainBook \
+      -Dversion="$VERSION" \
+      -Dpackaging=war \
+      -Dfile="$WAR_FILE" \
+      -DrepositoryId=nexus \
+      -Durl="$REPO_URL" \
+      -Dusername="${NEXUS_USERNAME}" \
+      -Dpassword="${NEXUS_PASSWORD}" \
+      -s settings.xml
+
 
       # 9️⃣ Check Tomcat connection
       - name: Check Tomcat Connection
