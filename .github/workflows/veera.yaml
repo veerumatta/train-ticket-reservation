@@ -38,7 +38,7 @@ jobs:
 
       # 4️⃣ Build WAR
       - name: Build with Maven
-        run: mvn clean package -DskipTests
+        run: mvn clean package -DskipTests -s settings.xml -U
 
       # 5️⃣ Set WAR file variable
       - name: Set WAR file
@@ -56,7 +56,9 @@ jobs:
           mvn clean verify sonar:sonar \
             -Dsonar.projectKey=train-ticket-reservation \
             -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
-            -Dsonar.login="${{ secrets.SONAR_TOKEN }}"
+            -Dsonar.login="${{ secrets.SONAR_TOKEN }}" \
+            -Dsonar.qualitygate.wait=true \
+            -s settings.xml -U
 
       # 7️⃣ Snyk Vulnerability Scan
       - name: Run Snyk to check for vulnerabilities
@@ -75,11 +77,9 @@ jobs:
         run: |
           WAR_FILE=$WAR_FILE
 
-          # Extract version from WAR filename
           VERSION=$(basename $WAR_FILE | sed -E 's/.*-([0-9]+.*)\.war/\1/')
           echo "VERSION=$VERSION"
 
-          # Choose snapshot or release repository
           if [[ "$VERSION" == *"SNAPSHOT"* ]]; then
             REPO_URL="$NEXUS_SNAPSHOT_URL"
           else
@@ -88,7 +88,6 @@ jobs:
 
           echo "Deploying $WAR_FILE version $VERSION to $REPO_URL"
 
-          # Deploy WAR to Nexus
           mvn deploy:deploy-file \
             -DgroupId=TrainBook \
             -DartifactId=TrainBook \
@@ -99,7 +98,7 @@ jobs:
             -Durl="$REPO_URL" \
             -Dusername="$NEXUS_USERNAME" \
             -Dpassword="$NEXUS_PASSWORD" \
-            -s settings.xml
+            -s settings.xml -U
 
       # 9️⃣ Check Tomcat connection
       - name: Check Tomcat Connection
@@ -113,6 +112,7 @@ jobs:
           curl -v -u "${{ secrets.TOMCAT_USER }}:${{ secrets.TOMCAT_PASSWORD }}" \
           -T "$WAR_FILE" \
           "http://${{ secrets.TOMCAT_HOST }}:8080/manager/text/deploy?path=/REDDY&update=true"
+
 
 
 
