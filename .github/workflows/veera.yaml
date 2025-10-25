@@ -9,6 +9,12 @@ jobs:
   build-deploy:
     runs-on: ubuntu-latest
 
+    env:
+      NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+      NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+      NEXUS_SNAPSHOT_URL: ${{ secrets.NEXUS_SNAPSHOT_URL }}
+      NEXUS_RELEASE_URL: ${{ secrets.NEXUS_RELEASE_URL }}
+
     steps:
       # 1️⃣ Checkout code
       - name: Checkout Repository
@@ -36,7 +42,13 @@ jobs:
 
       # 5️⃣ Set WAR file variable
       - name: Set WAR file
-        run: echo "WAR_FILE=$(ls target/*.war)" >> $GITHUB_ENV
+        run: |
+          WAR_FILE=$(ls target/*.war)
+          if [ ! -f "$WAR_FILE" ]; then
+            echo "WAR file not found!"
+            exit 1
+          fi
+          echo "WAR_FILE=$WAR_FILE" >> $GITHUB_ENV
 
       # 6️⃣ SonarQube Analysis
       - name: SonarQube Scan
@@ -53,32 +65,20 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         continue-on-error: true
 
-      # 8️⃣ Upload WAR to Nexus
+      # 8️⃣ Upload WAR to Nexus (Snapshot or Release)
       - name: Upload WAR to Nexus
         run: |
-          WAR_FILE=$(ls target/*.war)
-          echo "WAR_FILE=$WAR_FILE"
-
-          # Check if WAR exists
-          if [ ! -f "$WAR_FILE" ]; then
-            echo "WAR file not found!"
-            exit 1
-          fi
-
-          # Extract version from WAR filename
           VERSION=$(basename $WAR_FILE | sed -E 's/.*-([0-9]+.*)\.war/\1/')
           echo "VERSION=$VERSION"
 
-          # Choose Nexus repository URL
           if [[ "$VERSION" == *"SNAPSHOT"* ]]; then
-            REPO_URL="http://3.110.203.34:8081/repository/maven-snapshots/"
+            REPO_URL="${{ secrets.NEXUS_SNAPSHOT_URL }}"
           else
-            REPO_URL="http://3.110.203.34:8081/repository/maven-releases/"
+            REPO_URL="${{ secrets.NEXUS_RELEASE_URL }}"
           fi
 
           echo "Deploying $WAR_FILE version $VERSION to $REPO_URL"
 
-          # Deploy using Maven
           mvn deploy:deploy-file \
             -DgroupId=TrainBook \
             -DartifactId=TrainBook \
@@ -87,8 +87,8 @@ jobs:
             -Dfile=$WAR_FILE \
             -DrepositoryId=nexus \
             -Durl=$REPO_URL \
-            -Dusername=admin123 \
-            -Dpassword=admin123
+            -Dusername=$NEXUS_USERNAME \
+            -Dpassword=$NEXUS_PASSWORD
 
       # 9️⃣ Check Tomcat connection
       - name: Check Tomcat Connection
@@ -102,6 +102,7 @@ jobs:
           curl -v -u "${{ secrets.TOMCAT_USER }}:${{ secrets.TOMCAT_PASSWORD }}" \
           -T "$WAR_FILE" \
           "http://${{ secrets.TOMCAT_HOST }}:8080/manager/text/deploy?path=/REDDY&update=true"
+
 
 
 
