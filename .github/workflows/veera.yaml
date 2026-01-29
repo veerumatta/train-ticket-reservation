@@ -2,7 +2,7 @@ name: CI/CD Pipeline for Java App (Maven + SonarQube + Snyk + Nexus + Tomcat)
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
