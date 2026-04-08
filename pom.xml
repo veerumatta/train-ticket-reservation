@@ -1,7 +1,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" 
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-         
+
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>TrainBook</groupId>
@@ -22,7 +22,6 @@
         </resources>
 
         <plugins>
-
             <!-- Compiler -->
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -33,7 +32,7 @@
                 </configuration>
             </plugin>
 
-            <!-- WAR -->
+            <!-- WAR Packaging -->
             <plugin>
                 <artifactId>maven-war-plugin</artifactId>
                 <version>3.2.3</version>
@@ -42,11 +41,15 @@
                 </configuration>
             </plugin>
 
-            <!-- Snyk AUTO RUN -->
+            <!-- Snyk Plugin -->
             <plugin>
                 <groupId>io.snyk</groupId>
                 <artifactId>snyk-maven-plugin</artifactId>
                 <version>2.0.0</version>
+                <inherited>false</inherited>
+                <configuration>
+                    <auth>${env.SNYK_TOKEN}</auth>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>
@@ -55,7 +58,6 @@
                     </execution>
                 </executions>
             </plugin>
-
         </plugins>
     </build>
 
@@ -79,18 +81,17 @@
         </dependency>
     </dependencies>
 
-    <!-- Nexus -->
+    <!-- Nexus Repositories -->
     <distributionManagement>
         <snapshotRepository>
             <id>nexus</id>
-            <url>http://13.234.14.133:8081/repository/maven-snapshots/</url>
+            <url>http://54.157.183.95:8081/repository/maven-snapshotsveera/</url>
         </snapshotRepository>
         <repository>
             <id>nexus</id>
-            <url>http://13.234.14.133:8081/repository/maven-releases/</url>
+            <url>http://54.157.183.95:8081/repository/maven-releasesveera/</url>
         </repository>
     </distributionManagement>
-
 </project>
 
 
