@@ -1,4 +1,5 @@
 <settings>
+
   <servers>
     <server>
       <id>nexus</id>
@@ -6,12 +7,13 @@
       <password>${env.NEXUS_PASSWORD}</password>
     </server>
   </servers>
+
   <mirrors>
     <mirror>
-      <id>central</id>
-      <name>Nexus Mirror</name>
-      <url>http://13.234.14.133:8081/repository/maven-public/</url>
+      <id>nexus-mirror</id>
       <mirrorOf>*</mirrorOf>
+      <url>http://13.234.14.133:8081/repository/maven-public/</url>
     </mirror>
   </mirrors>
+
 </settings>
