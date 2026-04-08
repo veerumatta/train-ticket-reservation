@@ -3,6 +3,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
          
     <modelVersion>4.0.0</modelVersion>
+
     <groupId>TrainBook</groupId>
     <artifactId>TrainBook</artifactId>
     <version>1.0.0-SNAPSHOT</version>
@@ -10,6 +11,7 @@
 
     <build>
         <sourceDirectory>src</sourceDirectory>
+
         <resources>
             <resource>
                 <directory>src</directory>
@@ -18,7 +20,10 @@
                 </excludes>
             </resource>
         </resources>
+
         <plugins>
+
+            <!-- Compiler -->
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.1</version>
@@ -28,6 +33,7 @@
                 </configuration>
             </plugin>
 
+            <!-- WAR -->
             <plugin>
                 <artifactId>maven-war-plugin</artifactId>
                 <version>3.2.3</version>
@@ -36,39 +42,20 @@
                 </configuration>
             </plugin>
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <version>2.3</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>copy</goal>
-                        </goals>
-                        <configuration>
-                            <artifactItems>
-                                <artifactItem>
-                                    <groupId>com.github.jsimone</groupId>
-                                    <artifactId>webapp-runner</artifactId>
-                                    <version>8.0.30.2</version>
-                                    <destFileName>webapp-runner.jar</destFileName>
-                                </artifactItem>
-                            </artifactItems>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
+            <!-- Snyk AUTO RUN -->
             <plugin>
                 <groupId>io.snyk</groupId>
                 <artifactId>snyk-maven-plugin</artifactId>
                 <version>2.0.0</version>
-                <inherited>false</inherited>
-                <configuration>
-                    <org>Venn1991</org>
-                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
+
         </plugins>
     </build>
 
@@ -92,15 +79,14 @@
         </dependency>
     </dependencies>
 
+    <!-- Nexus -->
     <distributionManagement>
         <snapshotRepository>
             <id>nexus</id>
-            <name>Nexus Snapshots</name>
             <url>http://13.234.14.133:8081/repository/maven-snapshots/</url>
         </snapshotRepository>
         <repository>
             <id>nexus</id>
-            <name>Nexus Releases</name>
             <url>http://13.234.14.133:8081/repository/maven-releases/</url>
         </repository>
     </distributionManagement>
